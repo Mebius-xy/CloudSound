@@ -1,6 +1,6 @@
 # CloudSound
 
-CloudSound 是基于 [qier222/YesPlayMusic](https://github.com/qier222/YesPlayMusic) 的二次开发项目，当前重点放在 Web 端体验增强、播放器能力补强，以及桌面端 / 手机 / iPad 的双端适配。
+CloudSound 是基于 [qier222/YesPlayMusic](https://github.com/qier222/YesPlayMusic) 的二次开发项目，当前阶段重点放在 Web 端播放器体验增强、播放器能力补强，以及项目文档与演示能力整理。
 
 本仓库保留了原项目的 `MIT License`，并明确标注了上游来源与二次开发内容。
 
@@ -10,9 +10,9 @@ CloudSound 是基于 [qier222/YesPlayMusic](https://github.com/qier222/YesPlayMu
 - 原始许可证：`MIT`
 - 原始版权声明：`Copyright (c) 2020-2023 qier222`
 
-## 这次二开做了什么
+## 本次二开已稳定完成的内容
 
-当前版本相对上游项目，主要完成了以下几类增强。
+这次版本主要整理并落地了 3 组可以稳定展示的 PC 端功能增强。
 
 ### 1. 缓存管理增强
 
@@ -58,49 +58,25 @@ CloudSound 是基于 [qier222/YesPlayMusic](https://github.com/qier222/YesPlayMu
 - `src/utils/Player.js`
 - `src/store/initLocalStorage.js`
 
-### 4. 第一轮双端适配
-
-这次完成了第一轮桌面端 + 移动端（手机 / iPad）适配，重点处理了：
-
-- 全局内容区留白与安全区
-- 顶部导航栏在小屏下的重排
-- 底部播放器在移动端的 mini-player 区
-- 卡片、列表、详情页在窄屏下的结构调整
-- 首页、发现页、资料库、专辑页、歌单页、艺人页、搜索页的响应式适配
-
-主要涉及：
-
-- `src/App.vue`
-- `src/components/Navbar.vue`
-- `src/components/Player.vue`
-- `src/components/Cover.vue`
-- `src/components/CoverRow.vue`
-- `src/components/TrackList.vue`
-- `src/components/TrackListItem.vue`
-- `src/views/home.vue`
-- `src/views/explore.vue`
-- `src/views/library.vue`
-- `src/views/album.vue`
-- `src/views/playlist.vue`
-- `src/views/artist.vue`
-- `src/views/search.vue`
-
 ## 功能展示
 
-### 桌面端
+以下截图均为当前版本实际运行时生成的 PC 端功能展示图。
 
-原项目保留的桌面截图：
+### 缓存管理增强
 
-![Library](images/library.png)
-![Lyrics](images/lyrics.png)
-![Explore](images/explore.png)
+![Cache Management](docs/screenshots/pc/feature-cache-panel.png)
 
-### 移动端
+### 本地播放历史与统计
 
-本轮适配过程中的移动端截图：
+![Local History](docs/screenshots/pc/feature-local-history-summary.png)
 
-![Mobile Home](docs/screenshots/mobile-home.png)
-![Mobile Album](docs/screenshots/mobile-album.jpg)
+### 播放器均衡器与音质入口
+
+![Player Equalizer](docs/screenshots/pc/feature-player-equalizer.png)
+
+## 当前阶段说明
+
+我们已经尝试推进手机 / iPad 端适配，但这一轮结果还不够稳定，因此当前 README 不再把移动端适配作为“已完成成果”展示。后续会继续单独打磨这一部分。
 
 ## 本地开发
 
