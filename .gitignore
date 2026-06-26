@@ -1,6 +1,13 @@
 .DS_Store
 node_modules
 /dist
+.localtools
+.logs
+docs/.cache
+package-lock.json
+prompts.md
+start-api-local.cmd
+start-web-local.cmd
 
 # local env files
 .env

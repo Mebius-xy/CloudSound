@@ -1,5 +1,5 @@
 <template>
-  <div class="cover-row" :style="rowStyles">
+  <div :class="['cover-row', `type-${type}`]" :style="rowStyles">
     <div
       v-for="item in items"
       :key="item.id"
@@ -164,6 +164,36 @@ export default {
 @media (max-width: 834px) {
   .item .text .title {
     font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cover-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 24px 14px !important;
+  }
+
+  .cover-row.type-artist {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .item .text {
+    margin-top: 10px;
+
+    .title {
+      line-height: 18px;
+    }
+
+    .info {
+      margin-top: 2px;
+      line-height: 16px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .cover-row.type-artist {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 

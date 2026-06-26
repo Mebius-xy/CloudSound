@@ -113,6 +113,8 @@ export default {
 #app {
   width: 100%;
   transition: all 0.4s;
+  --app-nav-height: 64px;
+  --app-player-height: 96px;
 }
 
 main {
@@ -122,14 +124,40 @@ main {
   right: 0;
   left: 0;
   overflow: auto;
-  padding: 64px 10vw 96px 10vw;
+  padding: calc(var(--app-nav-height) + 12px) 10vw
+    calc(var(--app-player-height) + 20px) 10vw;
   box-sizing: border-box;
   scrollbar-width: none; // firefox
 }
 
 @media (max-width: 1336px) {
   main {
-    padding: 64px 5vw 96px 5vw;
+    padding: calc(var(--app-nav-height) + 12px) 5vw
+      calc(var(--app-player-height) + 20px) 5vw;
+  }
+}
+
+@media (max-width: 768px) {
+  #app {
+    --app-nav-height: 138px;
+    --app-player-height: 210px;
+  }
+
+  main {
+    padding: calc(var(--app-nav-height) + 12px) 16px
+      calc(var(--app-player-height) + env(safe-area-inset-bottom) + 20px) 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  #app {
+    --app-nav-height: 146px;
+    --app-player-height: 310px;
+  }
+
+  main {
+    padding-right: 14px;
+    padding-left: 14px;
   }
 }
 

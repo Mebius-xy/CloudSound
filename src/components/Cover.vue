@@ -9,7 +9,7 @@
     <div class="cover-container">
       <div class="shade">
         <button
-          v-show="focus"
+          v-show="showPlayButton"
           class="play-button"
           :style="playButtonStyles"
           @click.stop="play()"
@@ -46,9 +46,13 @@ export default {
   data() {
     return {
       focus: false,
+      isTouchDevice: false,
     };
   },
   computed: {
+    showPlayButton() {
+      return this.focus || (this.isTouchDevice && this.alwaysShowPlayButton);
+    },
     imageStyles() {
       let styles = {};
       if (this.fixedSize !== 0) {
@@ -70,6 +74,11 @@ export default {
       if (this.type === 'artist') styles.borderRadius = '50%';
       return styles;
     },
+  },
+  mounted() {
+    this.isTouchDevice =
+      window.matchMedia('(hover: none)').matches ||
+      window.matchMedia('(pointer: coarse)').matches;
   },
   methods: {
     play() {
@@ -145,6 +154,14 @@ img {
   }
   &:active {
     transform: scale(0.94);
+  }
+}
+
+@media (max-width: 768px) {
+  .play-button {
+    height: 28%;
+    width: 28%;
+    backdrop-filter: blur(12px);
   }
 }
 

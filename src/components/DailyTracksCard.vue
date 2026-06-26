@@ -169,4 +169,31 @@ img {
     transform: translateY(-50%);
   }
 }
+
+@media (max-width: 768px) {
+  .daily-recommend-card,
+  .container {
+    height: 156px;
+  }
+
+  .container {
+    width: 56%;
+  }
+
+  .title-box {
+    height: 116px;
+    width: 116px;
+    margin-left: 18px;
+
+    .title {
+      font-size: 48px;
+      line-height: 36px;
+    }
+  }
+
+  .play-button {
+    right: 1rem;
+    bottom: 1rem;
+  }
+}
 </style>

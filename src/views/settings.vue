@@ -117,28 +117,6 @@
       </div>
 
       <!-- <h3>音质</h3> -->
-      <div class="item">
-        <div class="left">
-          <div class="title"> {{ $t('settings.musicQuality.text') }} </div>
-        </div>
-        <div class="right">
-          <select v-model="musicQuality">
-            <option value="128000">
-              {{ $t('settings.musicQuality.low') }} - 128Kbps
-            </option>
-            <option value="192000">
-              {{ $t('settings.musicQuality.medium') }} - 192Kbps
-            </option>
-            <option value="320000">
-              {{ $t('settings.musicQuality.high') }} - 320Kbps
-            </option>
-            <option value="flac">
-              {{ $t('settings.musicQuality.lossless') }} - FLAC
-            </option>
-            <option value="999000">Hi-Res</option>
-          </select>
-        </div>
-      </div>
       <div v-if="isElectron" class="item">
         <div class="left">
           <div class="title"> {{ $t('settings.deviceSelector') }} </div>
@@ -157,7 +135,7 @@
         </div>
       </div>
 
-      <h3 v-if="isElectron">缓存</h3>
+      <h3>{{ $t('settings.cacheManagement.title') }}</h3>
       <div v-if="isElectron" class="item">
         <div class="left">
           <div class="title">
@@ -193,21 +171,52 @@
           </select>
         </div>
       </div>
-      <div v-if="isElectron" class="item">
-        <div class="left">
-          <div class="title">
-            {{
-              $t('settings.cacheCount', {
-                song: tracksCache.length,
-                size: tracksCache.size,
-              })
-            }}</div
-          >
+      <div class="cache-panel">
+        <div class="cache-overview">
+          <div>
+            <div class="title">
+              {{ $t('settings.cacheManagement.overview') }}
+            </div>
+            <div class="description">
+              {{
+                $t('settings.cacheManagement.total', {
+                  item: cacheTotal.length,
+                  size: cacheTotal.size,
+                })
+              }}
+            </div>
+          </div>
+          <div class="cache-actions">
+            <button @click="refreshCacheSummary">
+              {{ $t('settings.cacheManagement.refresh') }}
+            </button>
+            <button @click="clearCache">
+              {{ $t('settings.cacheManagement.clearAll') }}
+            </button>
+          </div>
         </div>
-        <div class="right">
-          <button @click="clearCache()">
-            {{ $t('settings.clearSongsCache') }}
-          </button>
+        <div v-for="cache in cacheSummary" :key="cache.key" class="cache-row">
+          <div>
+            <div class="title">
+              {{ $t(`settings.cacheManagement.types.${cache.key}`) }}
+            </div>
+            <div class="description">
+              {{
+                $t('settings.cacheManagement.itemCount', {
+                  count: cache.length,
+                })
+              }}
+            </div>
+          </div>
+          <div class="cache-actions">
+            <span class="cache-size">{{ cache.size }}</span>
+            <button
+              :disabled="cache.length === 0"
+              @click="clearCacheType(cache.tableName)"
+            >
+              {{ $t('settings.cacheManagement.clearType') }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -811,11 +820,17 @@
 import { mapState, mapActions } from 'vuex';
 import { isLooseLoggedIn, doLogout } from '@/utils/auth';
 import { auth as lastfmAuth } from '@/api/lastfm';
-import { 
-  changeAppearance, 
-  changeThemeColor, 
-  bytesToSize } from '@/utils/common';
-import { countDBSize, clearDB } from '@/utils/db';
+import {
+  changeAppearance,
+  changeThemeColor,
+  bytesToSize,
+} from '@/utils/common';
+import {
+  clearCacheTable,
+  clearDB,
+  countDBSize,
+  getCacheSummary,
+} from '@/utils/db';
 import pkg from '../../package.json';
 
 const electron =
@@ -830,6 +845,11 @@ export default {
   data() {
     return {
       tracksCache: {
+        size: '0KB',
+        length: 0,
+      },
+      cacheSummary: [],
+      cacheTotal: {
         size: '0KB',
         length: 0,
       },
@@ -978,16 +998,6 @@ export default {
         if (this.isElectron) {
           ipcRenderer.send('updateTrayIcon', value);
         }
-      },
-    },
-    musicQuality: {
-      get() {
-        return this.settings.musicQuality ?? 320000;
-      },
-      set(value) {
-        if (value === this.settings.musicQuality) return;
-        this.$store.commit('changeMusicQuality', value);
-        this.clearCache();
       },
     },
     lyricFontSize: {
@@ -1356,11 +1366,11 @@ export default {
     },
   },
   created() {
-    this.countDBSize('tracks');
+    this.refreshCacheSummary();
     if (process.env.IS_ELECTRON) this.getAllOutputDevices();
   },
   activated() {
-    this.countDBSize('tracks');
+    this.refreshCacheSummary();
     if (process.env.IS_ELECTRON) this.getAllOutputDevices();
   },
   methods: {
@@ -1402,9 +1412,47 @@ export default {
         this.tracksCache.length = data.length;
       });
     },
+    refreshCacheSummary() {
+      getCacheSummary().then(summary => {
+        const total = summary.reduce(
+          (result, cache) => {
+            return {
+              bytes: result.bytes + cache.bytes,
+              length: result.length + cache.length,
+            };
+          },
+          { bytes: 0, length: 0 }
+        );
+        const trackSources = summary.find(
+          cache => cache.key === 'trackSources'
+        );
+
+        this.cacheSummary = summary.map(cache => {
+          return {
+            ...cache,
+            size: bytesToSize(cache.bytes),
+          };
+        });
+        this.cacheTotal = {
+          size: bytesToSize(total.bytes),
+          length: total.length,
+        };
+        this.tracksCache = {
+          size: bytesToSize(trackSources?.bytes || 0),
+          length: trackSources?.length || 0,
+        };
+      });
+    },
     clearCache() {
       clearDB().then(() => {
-        this.countDBSize();
+        this.refreshCacheSummary();
+        this.showToast(this.$t('settings.cacheManagement.clearedAll'));
+      });
+    },
+    clearCacheType(tableName) {
+      clearCacheTable(tableName).then(() => {
+        this.refreshCacheSummary();
+        this.showToast(this.$t('settings.cacheManagement.clearedType'));
       });
     },
     lastfmConnect() {
@@ -1635,6 +1683,61 @@ h3 {
   }
 }
 
+.cache-panel {
+  margin: 0;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
+  border-radius: 0;
+}
+
+.cache-overview,
+.cache-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.cache-overview {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.cache-row {
+  padding: 0;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.cache-panel .title {
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 0.78;
+}
+
+.cache-panel .description {
+  margin-top: 8px;
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.cache-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cache-size {
+  min-width: 72px;
+  text-align: right;
+  font-weight: 500;
+  opacity: 0.68;
+}
+
 select {
   min-width: 192px;
   max-width: 600px;
@@ -1664,6 +1767,13 @@ button {
   }
   &:active {
     transform: scale(0.94);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
+  &:disabled:hover {
+    transform: none;
   }
 }
 
@@ -1834,5 +1944,18 @@ input[type='number'] {
 }
 .toggle input:checked + label:after {
   left: 26px;
+}
+
+@media (max-width: 768px) {
+  .cache-overview,
+  .cache-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cache-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

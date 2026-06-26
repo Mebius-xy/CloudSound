@@ -300,4 +300,55 @@ h1 {
     width: 24px;
   }
 }
+
+@media (max-width: 768px) {
+  h1 {
+    font-size: 32px;
+    margin-bottom: 18px;
+  }
+
+  .buttons {
+    gap: 10px;
+  }
+
+  .button {
+    margin: 0;
+    padding: 8px 14px;
+    font-size: 15px;
+  }
+
+  .panel {
+    margin-top: 14px;
+    padding: 14px;
+
+    .big-cat {
+      flex-direction: column;
+      margin-bottom: 20px;
+    }
+
+    .name {
+      min-width: 0;
+      margin: 0 0 10px;
+      font-size: 18px;
+      height: auto;
+    }
+
+    .cats {
+      margin-left: 0;
+      gap: 6px 0;
+    }
+
+    .cat {
+      min-width: 0;
+
+      span {
+        padding: 7px 10px;
+      }
+    }
+  }
+
+  .playlists {
+    margin-top: 18px;
+  }
+}
 </style>

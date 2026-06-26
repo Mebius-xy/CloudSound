@@ -437,4 +437,79 @@ export default {
   overflow: hidden;
   white-space: pre-line;
 }
+
+@media (max-width: 1024px) {
+  .playlist-info {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .album-page {
+    margin-top: 12px;
+  }
+
+  .playlist-info {
+    flex-direction: column;
+    margin-bottom: 40px;
+
+    .info {
+      width: 100%;
+      margin-top: 24px;
+      margin-left: 0;
+
+      .title {
+        font-size: 34px;
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin-top: 8px;
+        font-size: 18px;
+      }
+
+      .artist {
+        margin-top: 16px;
+        font-size: 16px;
+      }
+
+      .description {
+        margin-top: 16px;
+      }
+
+      .buttons {
+        flex-wrap: wrap;
+        margin-top: 24px !important;
+        gap: 12px;
+
+        button {
+          margin-right: 0;
+        }
+      }
+    }
+  }
+
+  .more-by {
+    padding-top: 18px;
+
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .playlist-info .info .title {
+    font-size: 28px;
+  }
+
+  .playlist-info .info .subtitle {
+    font-size: 16px;
+  }
+
+  .disc {
+    font-size: 18px;
+  }
+}
 </style>

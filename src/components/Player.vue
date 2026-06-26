@@ -102,6 +102,7 @@
         <div class="blank"></div>
         <div class="container" @click.stop>
           <button-icon
+            class="queue-button"
             :title="$t('player.nextUp')"
             :class="{
               active: $route.name === 'next',
@@ -111,6 +112,7 @@
             ><svg-icon icon-class="list"
           /></button-icon>
           <button-icon
+            class="repeat-button"
             :class="{
               active: player.repeatMode !== 'off',
               disabled: player.isPersonalFM,
@@ -132,12 +134,14 @@
             />
           </button-icon>
           <button-icon
+            class="shuffle-button"
             :class="{ active: player.shuffle, disabled: player.isPersonalFM }"
             :title="$t('player.shuffle')"
             @click.native="switchShuffle"
             ><svg-icon icon-class="shuffle"
           /></button-icon>
           <button-icon
+            class="reversed-button"
             v-if="settings.enableReversedMode"
             :class="{ active: player.reversed, disabled: player.isPersonalFM }"
             :title="$t('player.reversed')"
@@ -166,6 +170,104 @@
               ></vue-slider>
             </div>
           </div>
+          <div ref="audioTools" class="audio-tools">
+            <button
+              class="audio-chip quality-chip"
+              :class="{ active: showAudioPanel }"
+              @click.stop="toggleAudioPanel"
+            >
+              {{ qualityChipLabel }}
+            </button>
+            <button
+              class="audio-chip eq-chip"
+              :class="{ active: settings.enableEqualizer }"
+              @click.stop="toggleAudioPanel"
+            >
+              <span class="eq-bars">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </button>
+            <div v-if="showAudioPanel" class="audio-panel" @click.stop>
+              <div class="audio-panel-section">
+                <div class="audio-panel-title">
+                  {{ $t('settings.musicQuality.text') }}
+                </div>
+                <div class="quality-options">
+                  <button
+                    v-for="option in musicQualityOptions"
+                    :key="option.value"
+                    class="quality-option"
+                    :class="{ active: isCurrentQuality(option.value) }"
+                    @click="setMusicQuality(option.value)"
+                  >
+                    {{ option.shortLabel }}
+                  </button>
+                </div>
+              </div>
+              <div class="audio-panel-section">
+                <div class="audio-panel-header">
+                  <div class="audio-panel-title">
+                    {{ $t('settings.equalizer.title') }}
+                  </div>
+                  <div class="toggle compact">
+                    <input
+                      id="player-enable-equalizer"
+                      v-model="equalizerEnabled"
+                      type="checkbox"
+                      name="player-enable-equalizer"
+                    />
+                    <label for="player-enable-equalizer"></label>
+                  </div>
+                </div>
+                <div class="preset-options">
+                  <button
+                    v-for="preset in equalizerPresets"
+                    :key="preset.value"
+                    class="preset-option"
+                    :class="{ active: equalizerPreset === preset.value }"
+                    @click="setEqualizerPreset(preset.value)"
+                  >
+                    {{ $t(preset.label) }}
+                  </button>
+                </div>
+                <div
+                  class="player-equalizer-grid"
+                  :class="{ disabled: !equalizerEnabled }"
+                >
+                  <div
+                    v-for="(band, index) in equalizerBands"
+                    :key="band.frequency"
+                    class="player-equalizer-band"
+                  >
+                    <div class="player-equalizer-band-header">
+                      <span>{{ band.label }}</span>
+                      <span>{{
+                        formatEqualizerGain(equalizerBandValues[index])
+                      }}</span>
+                    </div>
+                    <input
+                      :value="equalizerBandValues[index]"
+                      :disabled="!equalizerEnabled"
+                      type="range"
+                      min="-12"
+                      max="12"
+                      step="1"
+                      @input="
+                        updateEqualizerBand(index, Number($event.target.value))
+                      "
+                    />
+                  </div>
+                </div>
+                <div class="audio-panel-footer">
+                  <button class="preset-option" @click="resetEqualizer">
+                    {{ $t('settings.equalizer.reset') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <button-icon
             class="lyrics-button"
@@ -186,8 +288,43 @@ import '@/assets/css/slider.css';
 
 import ButtonIcon from '@/components/ButtonIcon.vue';
 import VueSlider from 'vue-slider-component';
+import { clearDB } from '@/utils/db';
 import { goToListSource, hasListSource } from '@/utils/playList';
 import { formatTrackTime } from '@/utils/common';
+
+const equalizerBands = [
+  { frequency: 31, label: '31Hz' },
+  { frequency: 62, label: '62Hz' },
+  { frequency: 125, label: '125Hz' },
+  { frequency: 250, label: '250Hz' },
+  { frequency: 500, label: '500Hz' },
+  { frequency: 1000, label: '1kHz' },
+  { frequency: 2000, label: '2kHz' },
+  { frequency: 4000, label: '4kHz' },
+  { frequency: 8000, label: '8kHz' },
+  { frequency: 16000, label: '16kHz' },
+];
+const equalizerPresetsMap = {
+  flat: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  bass: [6, 5, 4, 2, 1, 0, -1, -2, -2, -3],
+  pop: [-1, 2, 4, 5, 3, 0, -1, -1, 1, 2],
+  rock: [4, 3, 2, 1, -1, -2, 1, 3, 4, 5],
+  vocal: [-2, -1, 1, 4, 5, 5, 3, 1, -1, -2],
+};
+const equalizerPresets = [
+  { value: 'flat', label: 'settings.equalizer.presets.flat' },
+  { value: 'bass', label: 'settings.equalizer.presets.bass' },
+  { value: 'pop', label: 'settings.equalizer.presets.pop' },
+  { value: 'rock', label: 'settings.equalizer.presets.rock' },
+  { value: 'vocal', label: 'settings.equalizer.presets.vocal' },
+];
+const musicQualityOptions = [
+  { value: '128000', shortLabel: '128K' },
+  { value: '192000', shortLabel: '192K' },
+  { value: '320000', shortLabel: '320K' },
+  { value: 'flac', shortLabel: 'FLAC' },
+  { value: '999000', shortLabel: 'Hi-Res' },
+];
 
 export default {
   name: 'Player',
@@ -198,6 +335,10 @@ export default {
   data() {
     return {
       mouseDownTarget: null,
+      showAudioPanel: false,
+      equalizerBands,
+      equalizerPresets,
+      musicQualityOptions,
     };
   },
   computed: {
@@ -221,19 +362,51 @@ export default {
         ? '音源来自酷我音乐'
         : '';
     },
+    equalizerEnabled: {
+      get() {
+        return this.settings.enableEqualizer || false;
+      },
+      set(value) {
+        this.$store.commit('updateSettings', {
+          key: 'enableEqualizer',
+          value,
+        });
+        this.player.applyEqualizerSettings();
+      },
+    },
+    equalizerPreset() {
+      return this.settings.equalizerPreset || 'flat';
+    },
+    equalizerBandValues() {
+      return this.settings.equalizerBands || [...equalizerPresetsMap.flat];
+    },
+    qualityChipLabel() {
+      const value = String(this.settings.musicQuality ?? 320000);
+      const labels = {
+        128000: this.$t('settings.musicQuality.low'),
+        192000: this.$t('settings.musicQuality.medium'),
+        320000: this.$t('settings.musicQuality.high'),
+        flac: this.$t('settings.musicQuality.lossless'),
+        999000: 'Hi-Res',
+      };
+      return labels[value] || labels[320000];
+    },
   },
   mounted() {
     this.setupMediaControls();
     window.addEventListener('keydown', this.handleKeydown);
+    document.addEventListener('pointerdown', this.handleDocumentPointerDown);
   },
   beforeDestroy() {
     window.removeEventListener('keydown', this.handleKeydown);
+    document.removeEventListener('pointerdown', this.handleDocumentPointerDown);
   },
   methods: {
     ...mapMutations(['toggleLyrics']),
     ...mapActions(['showToast', 'likeATrack']),
     handleClick(event) {
       if (event.target == this.mouseDownTarget) {
+        this.showAudioPanel = false;
         this.toggleLyrics();
       }
     },
@@ -289,6 +462,60 @@ export default {
     },
     mute() {
       this.player.mute();
+    },
+    toggleAudioPanel() {
+      this.showAudioPanel = !this.showAudioPanel;
+    },
+    handleDocumentPointerDown(event) {
+      if (!this.showAudioPanel) return;
+      if (this.$refs.audioTools?.contains(event.target)) return;
+      this.showAudioPanel = false;
+    },
+    isCurrentQuality(value) {
+      return String(this.settings.musicQuality ?? 320000) === String(value);
+    },
+    setMusicQuality(value) {
+      if (this.isCurrentQuality(value)) return;
+      this.$store.commit('changeMusicQuality', value);
+      clearDB();
+    },
+    setEqualizerPreset(value) {
+      this.$store.commit('updateSettings', {
+        key: 'equalizerPreset',
+        value,
+      });
+      this.$store.commit('updateSettings', {
+        key: 'equalizerBands',
+        value: [...equalizerPresetsMap[value]],
+      });
+      this.player.applyEqualizerSettings();
+    },
+    updateEqualizerBand(index, value) {
+      const bands = [...this.equalizerBandValues];
+      bands.splice(index, 1, value);
+      this.$store.commit('updateSettings', {
+        key: 'equalizerBands',
+        value: bands,
+      });
+      this.$store.commit('updateSettings', {
+        key: 'equalizerPreset',
+        value: 'custom',
+      });
+      this.player.applyEqualizerSettings();
+    },
+    resetEqualizer() {
+      this.$store.commit('updateSettings', {
+        key: 'equalizerBands',
+        value: [...equalizerPresetsMap.flat],
+      });
+      this.$store.commit('updateSettings', {
+        key: 'equalizerPreset',
+        value: 'flat',
+      });
+      this.player.applyEqualizerSettings();
+    },
+    formatEqualizerGain(value) {
+      return `${value > 0 ? '+' : ''}${value}dB`;
     },
 
     setupMediaControls() {
@@ -463,6 +690,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  position: relative;
   .expand {
     margin-left: 24px;
     .svg-icon {
@@ -481,10 +709,249 @@ export default {
       width: 84px;
     }
   }
+  .audio-tools {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+  }
 }
 
 .like-button {
   margin-left: 16px;
+}
+
+.audio-chip {
+  height: 30px;
+  min-width: 42px;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--color-text);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.2s;
+
+  &:hover {
+    background: var(--color-secondary-bg-for-transparent);
+  }
+
+  &.active {
+    color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+}
+
+.quality-chip {
+  min-width: 52px;
+}
+
+.eq-chip {
+  width: 36px;
+  padding: 0;
+}
+
+.eq-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 16px;
+
+  span {
+    width: 3px;
+    border-radius: 999px;
+    background: currentColor;
+
+    &:nth-child(1) {
+      height: 8px;
+    }
+
+    &:nth-child(2) {
+      height: 14px;
+    }
+
+    &:nth-child(3) {
+      height: 11px;
+    }
+  }
+}
+
+.audio-panel {
+  position: absolute;
+  right: 0;
+  bottom: 52px;
+  width: min(360px, 72vw);
+  padding: 16px;
+  border-radius: 16px;
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0)
+    ),
+    var(--color-navbar-bg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+  backdrop-filter: saturate(180%) blur(24px);
+}
+
+.audio-panel-section + .audio-panel-section {
+  margin-top: 16px;
+}
+
+.audio-panel-title {
+  margin-bottom: 10px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.78;
+}
+
+.audio-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quality-options,
+.preset-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quality-option,
+.preset-option {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--color-text);
+  background: var(--color-secondary-bg);
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.2s;
+
+  &:hover {
+    transform: none;
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+  }
+
+  &.active {
+    color: var(--color-primary);
+    background: var(--color-primary-bg);
+  }
+}
+
+.player-equalizer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  &.disabled {
+    opacity: 0.58;
+  }
+}
+
+.player-equalizer-band {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.08);
+}
+
+.player-equalizer-band-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.player-equalizer-band input[type='range'] {
+  width: 100%;
+}
+
+.audio-panel-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.toggle {
+  margin: auto;
+}
+
+.toggle input {
+  opacity: 0;
+  position: absolute;
+}
+
+.toggle input + label {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+  transition: 0.4s ease;
+  height: 32px;
+  width: 52px;
+  background: var(--color-secondary-bg);
+  border-radius: 8px;
+}
+
+.toggle input + label:before {
+  content: '';
+  position: absolute;
+  display: block;
+  transition: 0.2s cubic-bezier(0.24, 0, 0.5, 1);
+  height: 32px;
+  width: 52px;
+  top: 0;
+  left: 0;
+  border-radius: 8px;
+}
+
+.toggle input + label:after {
+  content: '';
+  position: absolute;
+  display: block;
+  box-shadow: 0 0 0 1px hsla(0, 0%, 0%, 0.02), 0 4px 0 0 hsla(0, 0%, 0%, 0.01),
+    0 4px 9px hsla(0, 0%, 0%, 0.08), 0 3px 3px hsla(0, 0%, 0%, 0.03);
+  transition: 0.35s cubic-bezier(0.54, 1.6, 0.5, 1);
+  background: #fff;
+  height: 20px;
+  width: 20px;
+  top: 6px;
+  left: 6px;
+  border-radius: 6px;
+}
+
+.toggle input:checked + label:before {
+  background: var(--color-primary-gradient);
+}
+
+.toggle input:checked + label:after {
+  left: 26px;
+}
+
+.toggle.compact input + label {
+  height: 26px;
+  width: 44px;
+}
+
+.toggle.compact input + label:before {
+  height: 26px;
+  width: 44px;
+}
+
+.toggle.compact input + label:after {
+  height: 16px;
+  width: 16px;
+  top: 5px;
+  left: 5px;
+}
+
+.toggle.compact input:checked + label:after {
+  left: 23px;
 }
 
 .button-icon.disabled {
@@ -495,6 +962,185 @@ export default {
   }
   &:active {
     transform: unset;
+  }
+}
+
+@media (max-width: 960px) {
+  .audio-panel {
+    width: min(320px, 84vw);
+  }
+
+  .player-equalizer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .player {
+    height: auto;
+    right: 14px;
+    left: 14px;
+    bottom: 14px;
+    border: 1px solid rgba(128, 128, 128, 0.1);
+    border-radius: 22px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.14);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
+  }
+
+  .progress-bar {
+    margin-top: -4px;
+    margin-bottom: 4px;
+  }
+
+  .controls {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+    padding: 8px 14px 0;
+  }
+
+  .blank {
+    display: none;
+  }
+
+  .playing .container {
+    width: 100%;
+
+    img {
+      height: 48px;
+      width: 48px;
+    }
+
+    .track-info {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .like-button {
+    margin-left: 8px;
+  }
+
+  .middle-control-buttons .container {
+    justify-content: center;
+    padding: 0;
+
+    .button-icon {
+      margin: 0 10px;
+    }
+  }
+
+  .right-control-buttons .container {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .right-control-buttons .container .volume-control {
+    margin-left: 0;
+  }
+
+  .right-control-buttons .container .audio-tools {
+    margin-left: 0;
+  }
+
+  .lyrics-button {
+    margin-left: 0 !important;
+  }
+
+  .audio-panel {
+    right: auto;
+    left: 0;
+    bottom: 48px;
+    width: min(360px, calc(100vw - 28px));
+  }
+}
+
+@media (max-width: 560px) {
+  .player {
+    right: 10px;
+    left: 10px;
+    bottom: calc(env(safe-area-inset-bottom) + 74px);
+    border-radius: 20px;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 8px);
+  }
+
+  .controls {
+    row-gap: 8px;
+    padding: 8px 12px 0;
+  }
+
+  .playing .container {
+    align-items: center;
+
+    img {
+      height: 42px;
+      width: 42px;
+      border-radius: 10px;
+    }
+
+    .track-info {
+      margin-left: 10px;
+
+      .name {
+        font-size: 14px;
+      }
+
+      .artist {
+        font-size: 11px;
+      }
+    }
+  }
+
+  .like-button {
+    display: none;
+  }
+
+  .middle-control-buttons .container {
+    .button-icon {
+      margin: 0 8px;
+    }
+
+    .play {
+      height: 40px;
+      width: 40px;
+    }
+  }
+
+  .right-control-buttons .container {
+    gap: 6px;
+  }
+
+  .right-control-buttons .container .queue-button,
+  .right-control-buttons .container .reversed-button,
+  .right-control-buttons .container .volume-control {
+    display: none;
+  }
+
+  .audio-chip {
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .quality-chip {
+    min-width: 48px;
+    padding: 0 8px;
+  }
+
+  .eq-chip {
+    width: 32px;
+  }
+
+  .audio-panel {
+    bottom: 42px;
+    width: calc(100vw - 20px);
+    max-width: 360px;
   }
 }
 </style>

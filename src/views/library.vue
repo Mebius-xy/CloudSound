@@ -155,29 +155,99 @@
       </div>
 
       <div v-show="currentTab === 'playHistory'">
-        <button
-          :class="{
-            'playHistory-button': true,
-            'playHistory-button--selected': playHistoryMode === 'week',
-          }"
-          @click="playHistoryMode = 'week'"
-        >
-          {{ $t('library.playHistory.week') }}
-        </button>
-        <button
-          :class="{
-            'playHistory-button': true,
-            'playHistory-button--selected': playHistoryMode === 'all',
-          }"
-          @click="playHistoryMode = 'all'"
-        >
-          {{ $t('library.playHistory.all') }}
-        </button>
-        <TrackList
-          :tracks="playHistoryList"
-          :column-number="1"
-          type="tracklist"
-        />
+        <div class="history-summary">
+          <div class="summary-card">
+            <div class="summary-label">
+              {{ $t('library.localPlayHistory.totalTracks') }}
+            </div>
+            <div class="summary-value">
+              {{ localPlayHistoryStats.totalTracks }}
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">
+              {{ $t('library.localPlayHistory.totalPlayCount') }}
+            </div>
+            <div class="summary-value">
+              {{ localPlayHistoryStats.totalPlayCount }}
+            </div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">
+              {{ $t('library.localPlayHistory.totalDuration') }}
+            </div>
+            <div class="summary-value">
+              {{
+                formatLocalPlayDuration(
+                  localPlayHistoryStats.totalPlayedSeconds
+                )
+              }}
+            </div>
+          </div>
+        </div>
+
+        <div class="history-section">
+          <div class="history-section-header">
+            <h2>{{ $t('library.localPlayHistory.title') }}</h2>
+            <button class="tab-button" @click="clearLocalHistory">
+              {{ $t('library.localPlayHistory.clear') }}
+            </button>
+          </div>
+          <div class="history-mode-buttons">
+            <button
+              :class="{
+                'playHistory-button': true,
+                'playHistory-button--selected': playHistorySource === 'local',
+              }"
+              @click="playHistorySource = 'local'"
+            >
+              {{ $t('library.localPlayHistory.title') }}
+            </button>
+            <button
+              :class="{
+                'playHistory-button': true,
+                'playHistory-button--selected': playHistorySource === 'cloud',
+              }"
+              @click="playHistorySource = 'cloud'"
+            >
+              {{ $t('library.playHistory.title') }}
+            </button>
+            <button
+              :class="{
+                'playHistory-button': true,
+                'playHistory-button--selected': playHistoryMode === 'week',
+              }"
+              @click="playHistoryMode = 'week'"
+            >
+              {{ $t('library.playHistory.week') }}
+            </button>
+            <button
+              :class="{
+                'playHistory-button': true,
+                'playHistory-button--selected': playHistoryMode === 'all',
+              }"
+              @click="playHistoryMode = 'all'"
+            >
+              {{ $t('library.playHistory.all') }}
+            </button>
+          </div>
+          <TrackList
+            :tracks="playHistoryList"
+            :column-number="1"
+            type="tracklist"
+          />
+        </div>
+
+        <div class="history-section">
+          <div class="history-section-header">
+            <h2>{{ $t('library.localPlayHistory.recentTitle') }}</h2>
+          </div>
+          <TrackList
+            :tracks="liked.localPlayHistory.stats.recentTracks"
+            :column-number="3"
+            type="tracklist"
+          />
+        </div>
       </div>
     </div>
 
@@ -248,6 +318,7 @@ export default {
       lyric: undefined,
       currentTab: 'playlists',
       playHistoryMode: 'week',
+      playHistorySource: 'local',
     };
   },
   computed: {
@@ -292,13 +363,27 @@ export default {
       return playlists;
     },
     playHistoryList() {
+      const history =
+        this.playHistorySource === 'local'
+          ? this.liked.localPlayHistory
+          : this.liked.playHistory;
       if (this.show && this.playHistoryMode === 'week') {
-        return this.liked.playHistory.weekData;
+        return history.weekData;
       }
       if (this.show && this.playHistoryMode === 'all') {
-        return this.liked.playHistory.allData;
+        return history.allData;
       }
       return [];
+    },
+    localPlayHistoryStats() {
+      return (
+        this.liked.localPlayHistory?.stats || {
+          totalPlayedSeconds: 0,
+          totalPlayCount: 0,
+          totalTracks: 0,
+          recentTracks: [],
+        }
+      );
     },
   },
   created() {
@@ -335,6 +420,7 @@ export default {
       this.$store.dispatch('fetchLikedMVs');
       this.$store.dispatch('fetchCloudDisk');
       this.$store.dispatch('fetchPlayHistory');
+      this.$store.dispatch('fetchLocalPlayHistory');
     },
     playLikedSongs() {
       this.$store.state.player.playPlaylistByID(
@@ -396,6 +482,18 @@ export default {
     changePlaylistFilter(type) {
       this.updateData({ key: 'libraryPlaylistFilter', value: type });
       window.scrollTo({ top: 375, behavior: 'smooth' });
+    },
+    formatLocalPlayDuration(totalSeconds) {
+      const minutes = Math.floor((totalSeconds || 0) / 60);
+      const hours = Math.floor(minutes / 60);
+      if (hours > 0) {
+        return `${hours}h ${minutes % 60}m`;
+      }
+      return `${minutes}m`;
+    },
+    clearLocalHistory() {
+      this.$store.dispatch('clearLocalPlayHistory');
+      this.showToast(this.$t('library.localPlayHistory.clear'));
     },
     selectUploadFiles() {
       this.$refs.cloudDiskUploadInput.click();
@@ -619,6 +717,132 @@ button.playHistory-button--selected {
   font-weight: 700;
   &:active {
     transform: none;
+  }
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-card {
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0)
+    ),
+    var(--color-secondary-bg);
+  color: var(--color-text);
+}
+
+.summary-label {
+  font-size: 13px;
+  opacity: 0.64;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summary-value {
+  margin-top: 10px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.history-section {
+  margin-bottom: 28px;
+}
+
+.history-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--color-text);
+  }
+}
+
+.history-mode-buttons {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  h1 {
+    font-size: 30px;
+    align-items: flex-start;
+    line-height: 1.2;
+
+    .avatar {
+      height: 38px;
+      margin-right: 10px;
+    }
+  }
+
+  .section-one {
+    flex-direction: column;
+
+    .songs {
+      margin-top: 18px;
+      margin-left: 0;
+    }
+  }
+
+  .liked-songs {
+    min-height: 180px;
+    padding: 16px 18px;
+
+    .bottom .title {
+      font-size: 20px;
+    }
+  }
+
+  .section-two {
+    margin-top: 40px;
+  }
+
+  .tabs-row {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .tabs {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      flex: 0 0 auto;
+      margin-right: 10px;
+      white-space: nowrap;
+    }
+  }
+
+  button.tab-button {
+    padding: 8px 12px;
+  }
+
+  .history-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .history-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
   }
 }
 </style>

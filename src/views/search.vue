@@ -285,4 +285,31 @@ export default {
     margin-right: 16px;
   }
 }
+
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column;
+    margin-top: 12px;
+
+    .artists {
+      margin-right: 0;
+      margin-bottom: 32px;
+    }
+  }
+
+  .section-title {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .tracks,
+  .music-videos,
+  .playlists {
+    margin-top: 34px;
+  }
+
+  .no-results {
+    font-size: 18px;
+  }
+}
 </style>

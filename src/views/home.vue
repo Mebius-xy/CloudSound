@@ -202,4 +202,30 @@ footer {
   gap: 24px;
   margin-bottom: 78px;
 }
+
+@media (max-width: 768px) {
+  .index-row {
+    margin-top: 36px;
+  }
+
+  .index-row.first-row {
+    margin-top: 12px;
+  }
+
+  .title {
+    margin-bottom: 16px;
+    font-size: 22px;
+    align-items: center;
+
+    a {
+      font-size: 12px;
+    }
+  }
+
+  .for-you-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+}
 </style>

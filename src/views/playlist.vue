@@ -945,4 +945,110 @@ export default {
   justify-content: center;
   margin-top: 32px;
 }
+
+@media (max-width: 1024px) {
+  .playlist-info {
+    .search-box {
+      position: static;
+      margin-top: 18px;
+      justify-content: flex-start;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .playlist {
+    margin-top: 12px;
+  }
+
+  .playlist-info {
+    flex-direction: column;
+    margin-bottom: 40px;
+
+    .info {
+      width: 100%;
+      margin-top: 24px;
+      margin-left: 0;
+
+      .title {
+        font-size: 30px;
+        line-height: 1.08;
+      }
+
+      .artist {
+        margin-top: 16px;
+        font-size: 16px;
+      }
+
+      .description {
+        margin-top: 16px;
+      }
+
+      .buttons {
+        flex-wrap: wrap;
+        gap: 12px;
+
+        button {
+          margin-right: 0;
+        }
+      }
+    }
+  }
+
+  .special-playlist {
+    margin-top: 72px;
+    margin-bottom: 72px;
+
+    .title {
+      font-size: 44px;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      margin: 20px 0 32px;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+
+    .buttons {
+      flex-wrap: wrap;
+      gap: 12px;
+
+      button {
+        margin-right: 0;
+      }
+    }
+  }
+
+  .user-info h1 {
+    font-size: 30px;
+    line-height: 1.2;
+
+    .avatar {
+      height: 38px;
+      margin-right: 10px;
+    }
+  }
+
+  .search-box-likepage {
+    position: static;
+    margin: 14px 0 20px;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .playlist-info .info .title {
+    font-size: 26px;
+  }
+
+  .search-box,
+  .search-box-likepage {
+    width: 100%;
+
+    .container {
+      width: min(100%, 240px);
+    }
+  }
+}
 </style>

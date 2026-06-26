@@ -46,8 +46,8 @@
         <img
           class="avatar"
           :src="avatarUrl"
-          @click="showUserProfileMenu"
           loading="lazy"
+          @click="showUserProfileMenu"
         />
       </div>
     </nav>
@@ -178,6 +178,7 @@ nav {
   right: 0;
   left: 0;
   display: flex;
+  gap: 16px;
   justify-content: space-between;
   align-items: center;
   height: 64px;
@@ -344,6 +345,147 @@ nav.has-custom-titlebar {
   .search-button {
     display: none;
     -webkit-app-region: no-drag;
+  }
+}
+
+@media (max-width: 768px) {
+  nav {
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    height: auto;
+    padding: 10px 16px 12px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+  }
+
+  .navigation-buttons {
+    flex: 0 0 auto;
+    padding: 4px;
+    gap: 4px;
+    border-radius: 999px;
+    background: var(--color-secondary-bg);
+  }
+
+  .navigation-links {
+    order: 3;
+    flex: 0 0 auto;
+    max-width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+    margin: 0 auto;
+    padding: 4px;
+    border-radius: 999px;
+    background: var(--color-secondary-bg);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    a {
+      flex: 0 0 auto;
+      margin: 0 10px 0 0;
+      padding: 9px 14px;
+      font-size: 16px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    a:last-child {
+      margin-right: 0;
+    }
+
+    a.active {
+      background: var(--color-primary-bg);
+    }
+  }
+
+  .right-part {
+    flex: 1 1 0;
+    min-width: 84px;
+  }
+
+  .search-box {
+    width: 100%;
+
+    .container {
+      width: min(100%, 220px);
+      border-radius: 999px;
+    }
+  }
+
+  .right-part .avatar {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  }
+}
+
+@media (max-width: 560px) {
+  nav {
+    gap: 10px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .navigation-buttons {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  .navigation-links {
+    order: 2;
+    flex: 0 0 100%;
+    justify-content: flex-start;
+    margin-top: 0;
+    padding: 5px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.04);
+    box-shadow: none;
+
+    a {
+      font-size: 15px;
+      font-weight: 700;
+      margin-right: 6px;
+      padding: 8px 12px;
+    }
+  }
+
+  .right-part {
+    flex: 1;
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .search-box {
+    justify-content: flex-start;
+
+    .container {
+      width: 38px;
+      max-width: 38px;
+      justify-content: center;
+      overflow: hidden;
+      transition: width 0.25s ease, max-width 0.25s ease, background 0.2s ease;
+    }
+
+    .container.active {
+      width: min(56vw, 220px);
+      max-width: min(56vw, 220px);
+      justify-content: flex-start;
+    }
+
+    .input {
+      min-width: 0;
+      width: 100%;
+    }
+
+    input {
+      font-size: 15px;
+      width: 100%;
+    }
+  }
+
+  .right-part .avatar {
+    display: none;
   }
 }
 </style>

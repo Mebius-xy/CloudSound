@@ -445,4 +445,59 @@ button {
     opacity: 0.78;
   }
 }
+
+@media (max-width: 768px) {
+  .track {
+    padding: 10px 8px;
+
+    .no {
+      margin: 0 12px 0 4px;
+    }
+
+    img {
+      height: 42px;
+      width: 42px;
+      margin-right: 12px;
+    }
+
+    .title-and-artist .title {
+      padding-right: 8px;
+      font-size: 15px;
+    }
+
+    .title-and-artist .artist {
+      font-size: 12px;
+    }
+
+    .album {
+      display: none;
+    }
+
+    .actions {
+      width: auto;
+      margin-left: 8px;
+    }
+
+    .time,
+    .count {
+      width: auto;
+      min-width: 44px;
+      margin-right: 0;
+      font-size: 13px;
+    }
+
+    .count {
+      font-size: 18px;
+      line-height: 18px;
+    }
+  }
+
+  .track.tracklist {
+    img {
+      height: 42px;
+      width: 42px;
+      margin-right: 12px;
+    }
+  }
+}
 </style>

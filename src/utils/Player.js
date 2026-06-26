@@ -6,7 +6,7 @@ import { getPlaylistDetail, intelligencePlaylist } from '@/api/playlist';
 import { getLyric, getMP3, getTrackDetail, scrobble } from '@/api/track';
 import store from '@/store';
 import { isAccountLoggedIn } from '@/utils/auth';
-import { cacheTrackSource, getTrackSource } from '@/utils/db';
+import { cacheTrackSource, getTrackSource, recordTrackPlay } from '@/utils/db';
 import { isCreateMpris, isCreateTray } from '@/utils/platform';
 import { Howl, Howler } from 'howler';
 import shuffle from 'lodash/shuffle';
@@ -92,6 +92,10 @@ export default class {
      * @type {string[]}
      */
     this.createdBlobRecords = [];
+    this._eqAudioContext = null;
+    this._eqSourceNode = null;
+    this._eqFilters = [];
+    this._lastRecordedPlaySignature = '';
 
     // howler (https://github.com/goldfire/howler.js)
     this._howler = null;
@@ -309,6 +313,9 @@ export default class {
     );
     const trackDuration = ~~(track.dt / 1000);
     time = completed ? trackDuration : ~~time;
+    if (time > 0 || completed) {
+      this._recordTrackPlayback(time, completed);
+    }
     scrobble({
       id: track.id,
       sourceid: this.playlistSource.id,
@@ -371,6 +378,7 @@ export default class {
       setTrayLikeState(store.state.liked.songs.includes(this.currentTrack.id));
     }
     this.setOutputDevice();
+    this._applyEqualizerWhenReady();
   }
   _getAudioSourceBlobURL(data) {
     // Create a new object URL.
@@ -833,6 +841,7 @@ export default class {
         setTitle(this._currentTrack);
       }
       this._playDiscordPresence(this._currentTrack, this.seek());
+      this._markTrackPlaybackStart();
       if (store.state.lastfm.key !== undefined) {
         trackUpdateNowPlaying({
           artist: this.currentTrack.ar[0].name,
@@ -996,5 +1005,94 @@ export default class {
   }
   removeTrackFromQueue(index) {
     this._playNextList.splice(index, 1);
+  }
+
+  _markTrackPlaybackStart() {
+    this._lastRecordedPlaySignature = '';
+  }
+
+  _recordTrackPlayback(time, completed = false) {
+    const track = this.currentTrack;
+    if (!track?.id) return;
+
+    const wholeSeconds = completed
+      ? this.currentTrackDuration
+      : Math.max(0, ~~time);
+    const signature = `${track.id}:${completed ? 'complete' : wholeSeconds}`;
+
+    if (this._lastRecordedPlaySignature === signature) return;
+    this._lastRecordedPlaySignature = signature;
+
+    recordTrackPlay(track, wholeSeconds, completed).then(() => {
+      store.dispatch('fetchLocalPlayHistory');
+    });
+  }
+
+  _ensureEqualizerNodes() {
+    const node = this._howler?._sounds?.[0]?._node;
+    if (!node) return false;
+    if (this._eqSourceNode && this._eqSourceNode.mediaElement === node) {
+      return true;
+    }
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return false;
+
+    if (!this._eqAudioContext) {
+      this._eqAudioContext = new AudioContextClass();
+    }
+
+    try {
+      this._eqSourceNode?.disconnect();
+      this._eqFilters.forEach(filter => filter.disconnect());
+      this._eqSourceNode = this._eqAudioContext.createMediaElementSource(node);
+    } catch (error) {
+      return this._eqSourceNode?.mediaElement === node;
+    }
+
+    const frequencies = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+    this._eqFilters = frequencies.map((frequency, index) => {
+      const filter = this._eqAudioContext.createBiquadFilter();
+      filter.type =
+        index === 0 ? 'lowshelf' : index === 9 ? 'highshelf' : 'peaking';
+      filter.frequency.value = frequency;
+      filter.Q.value = 1;
+      filter.gain.value = 0;
+      return filter;
+    });
+
+    let previousNode = this._eqSourceNode;
+    this._eqFilters.forEach(filter => {
+      previousNode.connect(filter);
+      previousNode = filter;
+    });
+    previousNode.connect(this._eqAudioContext.destination);
+
+    return true;
+  }
+
+  applyEqualizerSettings() {
+    if (!this._ensureEqualizerNodes()) return;
+    const bands = store.state.settings.equalizerBands || [];
+    const enabled = store.state.settings.enableEqualizer;
+
+    this._eqFilters.forEach((filter, index) => {
+      filter.gain.value = enabled ? bands[index] || 0 : 0;
+    });
+  }
+
+  _applyEqualizerWhenReady() {
+    const tryApply = () => {
+      if (this._ensureEqualizerNodes()) {
+        this.applyEqualizerSettings();
+        if (this._eqAudioContext?.state === 'suspended') {
+          this._eqAudioContext.resume().catch(() => {});
+        }
+        return;
+      }
+      setTimeout(tryApply, 120);
+    };
+
+    tryApply();
   }
 }

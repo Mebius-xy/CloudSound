@@ -553,4 +553,67 @@ export default {
   overflow: hidden;
   white-space: pre-line;
 }
+
+@media (max-width: 768px) {
+  .artist-page {
+    margin-top: 12px;
+  }
+
+  .artist-info {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 12px;
+
+    img {
+      height: 220px;
+      width: 220px;
+      margin-right: 0;
+      margin-bottom: 22px;
+    }
+
+    .name {
+      font-size: 34px;
+      line-height: 1.05;
+    }
+
+    .artist {
+      margin-top: 14px;
+      font-size: 16px;
+    }
+
+    .buttons {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .description {
+      margin-top: 16px;
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  .section-title {
+    padding-top: 30px;
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .latest-release .release {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .artist-info {
+    img {
+      height: 188px;
+      width: 188px;
+    }
+
+    .name {
+      font-size: 28px;
+    }
+  }
+}
 </style>

@@ -171,17 +171,33 @@ export default {
     },
   },
   created() {
-    if (this.type === 'tracklist') {
-      this.listStyles = {
-        display: 'grid',
-        gap: '4px',
-        gridTemplateColumns: `repeat(${this.columnNumber}, 1fr)`,
-      };
-    }
+    this.updateListStyles();
+    window.addEventListener('resize', this.updateListStyles);
+  },
+  beforeDestroy() {
+    window.removeEventListener('resize', this.updateListStyles);
   },
   methods: {
     ...mapMutations(['updateModal']),
     ...mapActions(['nextTrack', 'showToast', 'likeATrack']),
+    updateListStyles() {
+      if (this.type !== 'tracklist') {
+        this.listStyles = {};
+        return;
+      }
+
+      let columnNumber = this.columnNumber;
+      if (window.innerWidth <= 768) columnNumber = 1;
+      else if (window.innerWidth <= 1100) {
+        columnNumber = Math.min(2, columnNumber);
+      }
+
+      this.listStyles = {
+        display: 'grid',
+        gap: window.innerWidth <= 768 ? '8px' : '4px',
+        gridTemplateColumns: `repeat(${columnNumber}, 1fr)`,
+      };
+    },
     openMenu(e, track, index = -1) {
       this.rightClickedTrack = track;
       this.rightClickedTrackIndex = index;

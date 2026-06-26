@@ -26,6 +26,16 @@ export default {
       weekData: [],
       allData: [],
     },
+    localPlayHistory: {
+      stats: {
+        totalPlayedSeconds: 0,
+        totalPlayCount: 0,
+        totalTracks: 0,
+        recentTracks: [],
+      },
+      weekData: [],
+      allData: [],
+    },
   },
   contextMenu: {
     clickObjectID: 0,

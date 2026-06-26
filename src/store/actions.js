@@ -13,6 +13,7 @@ import {
   cloudDisk,
   userAccount,
 } from '@/api/user';
+import { clearLocalPlayHistory, getLocalPlayHistorySummary } from '@/utils/db';
 
 export default {
   showToast({ state, commit }, text) {
@@ -188,6 +189,33 @@ export default {
           data: data,
         });
       }
+    });
+  },
+  fetchLocalPlayHistory: ({ commit }) => {
+    return getLocalPlayHistorySummary().then(data => {
+      commit('updateLikedXXX', {
+        name: 'localPlayHistory',
+        data,
+      });
+      return data;
+    });
+  },
+  clearLocalPlayHistory: ({ commit }) => {
+    return clearLocalPlayHistory().then(() => {
+      const data = {
+        stats: {
+          totalPlayedSeconds: 0,
+          totalPlayCount: 0,
+          totalTracks: 0,
+          recentTracks: [],
+        },
+        weekData: [],
+        allData: [],
+      };
+      commit('updateLikedXXX', {
+        name: 'localPlayHistory',
+        data,
+      });
     });
   },
   fetchUserProfile: ({ commit }) => {

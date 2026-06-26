@@ -190,4 +190,33 @@ export default {
     }
   }
 }
+
+@media (max-width: 768px) {
+  .fm {
+    height: auto;
+    min-height: 156px;
+    padding: 14px;
+  }
+
+  .cover {
+    width: 112px;
+    height: 112px;
+    margin-right: 14px;
+    object-fit: cover;
+  }
+
+  .right-part .title {
+    font-size: 1.2rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .right-part .controls {
+    margin-top: 14px;
+    align-items: center;
+
+    .card-name {
+      display: none;
+    }
+  }
+}
 </style>
